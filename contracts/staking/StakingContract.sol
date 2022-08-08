@@ -72,6 +72,9 @@ contract AssymetricStaking {
         if(block.timestamp > contractTermination){
             revert Staking__StakingPeriodIsClosed();
         }
+        
+        stakingTokens.approve(address(this), amount);
+        stakingTokens.transferFrom(msg.sender, address(this), amount);
         stakerBalance[msg.sender] += amount;
         totalStakedBalance += amount;
         if(!inserted[msg.sender]){
@@ -79,8 +82,6 @@ contract AssymetricStaking {
             addresses.push(msg.sender); //emit index.
         }
         stakerToDepositTime[msg.sender] = block.timestamp;
-        stakingTokens.approve(address(this), amount);
-        stakingTokens.transferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
     }
 
@@ -118,6 +119,7 @@ contract AssymetricStaking {
     function withdrawMonion() external {
         require(block.timestamp > contractTermination, "You cannot call this function until expiration!");
         uint amount = stakerBalance[msg.sender];
+        stakerBalance[msg.sender] = 0;
         stakingTokens.transfer(msg.sender, amount);
         emit WithdrawAllMonion(msg.sender);
     }
@@ -154,11 +156,12 @@ contract AssymetricStaking {
         uint bps = (10000 * stakerRewards[msg.sender])/totalRewardConstant_Owner;
         uint payout = (bps*rewardPoolTotal)/10000;
 
+        rewardPoolBalance -= payout;
+        claimed[msg.sender] = true;
         // rewardTokens.approve(msg.sender, payout);
         rewardTokens.transfer(msg.sender, payout);
         
-        rewardPoolBalance -= payout;
-        claimed[msg.sender] = true;
+        
 
         emit ClaimedRewards(msg.sender, payout);
 
